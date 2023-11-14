@@ -6,4 +6,4 @@ install
 tags
 .vs/
 .vscode/
-/master/main.cpp
+main.cpp
