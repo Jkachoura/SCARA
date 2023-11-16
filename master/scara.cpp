@@ -40,6 +40,10 @@ JointAngles SCARA::calculateJointAngles(double x, double y, bool elbowLeft) {
     return result;
 }
 
+/**
+ * Acknowledges faults and enables powerstage for all slaves.
+ * 
+*/
 void SCARA::initSlaves() {
     for (auto& ecSlave : this->ecSlaves) {
         ecSlave.acknowledge_faults();
@@ -47,6 +51,15 @@ void SCARA::initSlaves() {
     } 
 }
 
+/**
+ * Moves a slave to a position.
+ * 
+ * @param ecSlave The slave to move
+ * @param slaveNr The index of the slave in the ecSlaves vector
+ * @param position The position to move to
+ * @param velocity The velocity to move with
+ * 
+*/
 void SCARA::moveToPos(Slave ecSlave, int slaveNr, int position, int velocity) {
     // Ensure that slaveNr is a valid index (0 to size() - 1)
     if (slaveNr >= 0 && slaveNr < this->ecSlaves.size()) {
@@ -59,60 +72,50 @@ void SCARA::moveToPos(Slave ecSlave, int slaveNr, int position, int velocity) {
 
 void SCARA::moveToPosT(const std::vector<int>& velocities, const std::vector<int>& positions, bool startThreads2First) {
     if (velocities.size() != this->ecSlaves.size()) {
-        // Handle error: The number of velocities should match the number of slaves
         std::cerr << "Error: Number of velocities does not match the number of slaves\n";
         return;
     }
 
     int ballScrewNut = 1;
 
-    // Choose the order of thread start based on the boolean parameter
     if (startThreads2First) {
-        // Create and start threads2 using vector instead of an array
         std::vector<std::thread> threads2(ballScrewNut);
         for (int i = 0; i < ballScrewNut; ++i) {
             threads2[i] = std::thread(&SCARA::moveToPos, this, ecSlaves[i + 2], i + 2, positions[i + 2], velocities[i + 2]); // Adjust velocity as needed
         }
 
-        // Wait for all threads2 to finish
         for (int i = 0; i < ballScrewNut; ++i) {
             threads2[i].join();
         }
 
-        // Create and start threads using vector instead of an array
         int joints = 2;
         std::vector<std::thread> threads(joints);
         for (int i = 0; i < joints; ++i) {
             threads[i] = std::thread(&SCARA::moveToPos, this, ecSlaves[i], i, positions[i], velocities[i]); // Adjust velocity as needed
         }
 
-        // Wait for all threads to finish
         for (int i = 0; i < joints; ++i) {
             threads[i].join();
         }
     } else {
-        // Create and start threads using vector instead of an array
         int joints = 2;
         std::vector<std::thread> threads(joints);
         for (int i = 0; i < joints; ++i) {
             threads[i] = std::thread(&SCARA::moveToPos, this, ecSlaves[i], i, positions[i], velocities[i]); // Adjust velocity as needed
         }
 
-        // Wait for all threads to finish
         for (int i = 0; i < joints; ++i) {
             threads[i].join();
         }
 
-        // Create and start threads2 using vector instead of an array
         std::vector<std::thread> threads2(ballScrewNut);
         for (int i = 0; i < ballScrewNut; ++i) {
             threads2[i] = std::thread(&SCARA::moveToPos, this, ecSlaves[i + 2], i + 2, positions[i + 2], velocities[i + 2]); // Adjust velocity as needed
         }
 
-        // Wait for all threads2 to finish
         for (int i = 0; i < ballScrewNut; ++i) {
             threads2[i].join();
         }
     }
+    moveToPos(ecSlaves[2], 2, 0, velocities[2]);
 }
-

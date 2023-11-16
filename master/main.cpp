@@ -21,26 +21,35 @@ int main(int argc, char* argv[]) {
 
         scaraRobot.initSlaves();
 
-        // Specify individual velocities for each drive
-        std::vector<int> velocities = {40000, 60000, 400}; // Adjust as needed
+        std::vector<int> velocities = {40000, 50000, 400};
+
         std::vector<int> StartPositions = {0, 0, 0};
-        
-        // Start threads for moveToStart with individual velocities
         scaraRobot.moveToPosT(velocities, StartPositions, true);
         
-        JointAngles angles = scaraRobot.calculateJointAngles(423.70, -45.51, false);
-        
-        std::vector<int> endPositions = {(int)angles.j1 * 1000, (int)angles.j2 * 1000, 275 * 1000};
-        Sleep(3000);
-   
-        scaraRobot.moveToPosT(velocities, endPositions, false);
+        while(true){
+            std::vector<std::pair<double, double>> targetPositions = {
+                {244.16, -187.19}, {333.86, -186.59}, {424.23, -186.09},
+                {244.58, -47.11}, {334.07, -45.80}, {423.70, -45.51},
+                {244.73, 92.74}, {333.82, 93.47}, {423.77, 94.23}
+            };
 
-        Sleep(1000);
+            std::vector<std::vector<int>> endPositions;
 
-        // Start threads for moveToStart with individual velocities
-        scaraRobot.moveToPosT(velocities, StartPositions, true);
+            // Calculate and store end positions for each target position
+            for (const auto& target : targetPositions) {
+                JointAngles angles = scaraRobot.calculateJointAngles(target.first, target.second, false);
+                endPositions.push_back({ (int)angles.j1 * 1000, (int)angles.j2 * 1000, 275 * 1000 });
+            }
 
-        Sleep(1000);
+            // Move to each target position
+            for (const auto& endPos : endPositions) {
+                scaraRobot.moveToPosT(velocities, endPos, false);
+            }
+
+            // Move back to the starting position
+            scaraRobot.moveToPosT(velocities, StartPositions, true);
+            Sleep(1000);
+        }
 
         return EXIT_SUCCESS;
     }
