@@ -25,7 +25,8 @@ class SCARA {
         ~SCARA();
         JointAngles calculateJointAngles(double x, double y, bool elbowLeft);
         void initSlaves();
-        void moveToPosT(const std::vector<int>& velocities, const std::vector<int>& positions, bool startThreads2First);
+        void moveToPosT(const std::vector<int>& velocities, const std::vector<int>& positions);
+        void demo(const std::vector<int>& velocities);
 };
 
 #endif // SCARA_H

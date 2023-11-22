@@ -70,52 +70,78 @@ void SCARA::moveToPos(Slave ecSlave, int slaveNr, int position, int velocity) {
     }
 }
 
-void SCARA::moveToPosT(const std::vector<int>& velocities, const std::vector<int>& positions, bool startThreads2First) {
+/**
+ * Moves all slaves to a position.
+ * 
+ * @param velocities The velocities to move with
+ * @param positions The positions to move to
+ * @param startThreads2First True if the ball screw nut slaves should be moved first, false if the joints should be moved first
+ * 
+ * @note The number of velocities and positions must match the number of slaves
+ * 
+*/
+void SCARA::moveToPosT(const std::vector<int>& velocities, const std::vector<int>& positions) {
+    // Ensure that the number of velocities and positions match the number of slaves
     if (velocities.size() != this->ecSlaves.size()) {
+        //print velocities.size() and this->ecSlaves.size()
+        std::cout << "velocities.size() = " << velocities.size() << std::endl;
+        std::cout << "this->ecSlaves.size() = " << this->ecSlaves.size() << std::endl;
         std::cerr << "Error: Number of velocities does not match the number of slaves\n";
         return;
     }
-
-    int ballScrewNut = 1;
-
-    if (startThreads2First) {
-        std::vector<std::thread> threads2(ballScrewNut);
-        for (int i = 0; i < ballScrewNut; ++i) {
-            threads2[i] = std::thread(&SCARA::moveToPos, this, ecSlaves[i + 2], i + 2, positions[i + 2], velocities[i + 2]); // Adjust velocity as needed
-        }
-
-        for (int i = 0; i < ballScrewNut; ++i) {
-            threads2[i].join();
-        }
-
-        int joints = 2;
-        std::vector<std::thread> threads(joints);
-        for (int i = 0; i < joints; ++i) {
-            threads[i] = std::thread(&SCARA::moveToPos, this, ecSlaves[i], i, positions[i], velocities[i]); // Adjust velocity as needed
-        }
-
-        for (int i = 0; i < joints; ++i) {
-            threads[i].join();
-        }
-    } else {
-        int joints = 2;
-        std::vector<std::thread> threads(joints);
-        for (int i = 0; i < joints; ++i) {
-            threads[i] = std::thread(&SCARA::moveToPos, this, ecSlaves[i], i, positions[i], velocities[i]); // Adjust velocity as needed
-        }
-
-        for (int i = 0; i < joints; ++i) {
-            threads[i].join();
-        }
-
-        std::vector<std::thread> threads2(ballScrewNut);
-        for (int i = 0; i < ballScrewNut; ++i) {
-            threads2[i] = std::thread(&SCARA::moveToPos, this, ecSlaves[i + 2], i + 2, positions[i + 2], velocities[i + 2]); // Adjust velocity as needed
-        }
-
-        for (int i = 0; i < ballScrewNut; ++i) {
-            threads2[i].join();
-        }
-    }
     moveToPos(ecSlaves[2], 2, 0, velocities[2]);
+    // Ball screw nut motors
+    int ballScrewNut = 2;
+    // Joints motors
+    int joints = 2;
+
+    std::vector<std::thread> threads(joints);
+    for (int i = 0; i < joints; ++i) {
+        threads[i] = std::thread(&SCARA::moveToPos, this, ecSlaves[i], i, positions[i], velocities[i]); 
+    }
+
+    for (int i = 0; i < joints; ++i) {
+        threads[i].join();
+    }
+
+    std::vector<std::thread> threads2(ballScrewNut);
+    for (int i = 0; i < ballScrewNut; ++i) {
+        threads2[i] = std::thread(&SCARA::moveToPos, this, ecSlaves[i + 2], i + 2, positions[i + 2], velocities[i + 2]); 
+    }
+
+    for (int i = 0; i < ballScrewNut; ++i) {
+        threads2[i].join();
+    }
+
+    Sleep(5000);
+
+    moveToPos(ecSlaves[2], 2, 0, velocities[2]);
+}
+
+/**
+ * Moves the robot to a set of target positions.
+ * 
+ * @param velocities The velocities to move with
+ * 
+ * @note The set of target positions is hardcoded
+*/
+void SCARA::demo(const std::vector<int>& velocities){
+    std::vector<std::pair<double, double>> targetPositions = {
+        {244.16, -187.19}, {333.86, -186.59}, {424.23, -186.09},
+        {244.58, -47.11}, {334.07, -45.80}, {423.70, -45.51},
+        {244.73, 92.74}, {333.82, 93.47}, {423.77, 94.23}
+    };
+
+    std::vector<std::vector<int>> endPositions;
+
+    // Calculate and store end positions for each target position
+    for (const auto& target : targetPositions) {
+        JointAngles angles = calculateJointAngles(target.first, target.second, false);
+        endPositions.push_back({ (int)angles.j1 * 1000, (int)angles.j2 * 1000, 275 * 1000 });
+    }
+
+    // Move to each target position
+    for (const auto& endPos : endPositions) {
+        moveToPosT(velocities, endPos);
+    }
 }
