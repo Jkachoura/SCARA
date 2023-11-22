@@ -1,47 +1,57 @@
-// #include "master.h"
-// #include "slave.h"
-// #include "scara.h"
-// #include <iostream>
-// #include <vector>
+#include <iostream>
+#include <WS2tcpip.h>
 
-// const int numSlaves = 4;
-
-// int main(int argc, char* argv[]) {
-//     char ifaceName[] = "\\Device\\NPF_{DEA85026-34BA-4C8B-9840-A3CE7793A348}";
-//     Master ecMaster(ifaceName, 8000);
-
-//     if (ecMaster.connected()) {
-//         std::vector <Slave> ecSlaves;
-        
-//         for(int i = 1; i <= numSlaves; i++) {
-//             ecSlaves.push_back(Slave(ecMaster, i));
-//         }
-
-//         SCARA scaraRobot(250, 280, ecSlaves);
-
-//         scaraRobot.initSlaves();
-
-//         std::vector<int> velocities = {20000, 25000, 300, 500000};
-
-//         double angle = 38.2;
-//         JointAngles angles = scaraRobot.calculateJointAngles(380.0, -128.0, false);
-//         std::vector<int> positions = {(int)angles.j1 * 1000, (int)angles.j2 * 1000, 300 * 1000, int(angle) * 1000};
-
-
-//         scaraRobot.moveToPosT(velocities, positions);
-//         return EXIT_SUCCESS;
-//     }
-//     else {
-//         return EXIT_FAILURE;
-//     }
-// }
-
-// main.cpp
-#include "Camera.h"
+#pragma comment(lib, "ws2_32.lib")
 
 int main() {
-    Camera camera("192.168.0.101", 2006);
-    camera.capture();
+    // Initialize Winsock
+    WSADATA wsData;
+    WORD ver = MAKEWORD(2, 2);
+
+    if (WSAStartup(ver, &wsData) != 0) {
+        std::cerr << "Error initializing Winsock" << std::endl;
+        return -1;
+    }
+
+    // Create a socket
+    SOCKET clientSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (clientSocket == INVALID_SOCKET) {
+        std::cerr << "Error creating socket" << std::endl;
+        WSACleanup();
+        return -1;
+    }
+
+    // Set up the server address
+    sockaddr_in serverAddr;
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(2005); // Change this to the desired port
+    inet_pton(AF_INET, "192.168.0.101", &(serverAddr.sin_addr));
+
+    // Connect to the server
+    if (connect(clientSocket, reinterpret_cast<sockaddr*>(&serverAddr), sizeof(serverAddr)) == SOCKET_ERROR) {
+        std::cerr << "Error connecting to server" << std::endl;
+        closesocket(clientSocket);
+        WSACleanup();
+        return -1;
+    }
+
+    std::cout << "Connected to server" << std::endl;
+
+    // Receive and print messages in a loop
+    char buffer[1024];
+    while (true) {
+        int bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
+        if (bytesReceived <= 0) {
+            std::cerr << "Connection closed or error" << std::endl;
+            break;
+        }
+
+        std::cout << "Received message: " << std::string(buffer, bytesReceived) << std::endl;
+    }
+
+    // Cleanup
+    closesocket(clientSocket);
+    WSACleanup();
 
     return 0;
 }
