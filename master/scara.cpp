@@ -3,8 +3,24 @@
 
 const double PI = 3.14159265358979323846;
 
-SCARA::SCARA(double length_a1, double length_a2, std::vector<Slave>& ecSlavesVec) : a1(length_a1), a2(length_a2), ecSlaves(ecSlavesVec) {}
+/**
+ * Constructor for SCARA.
+ * 
+ * @param length_a1 The length of the first arm
+ * @param length_a2 The length of the second arm
+ * @param ecSlavesVec A vector containing all the slaves
+ * @param airPressureSlave The index of the slave that controls the air pressure
+ * 
+*/
+SCARA::SCARA(double length_a1, double length_a2, std::vector<Slave>& ecSlavesVec, int airPressureSlave) : a1(length_a1), a2(length_a2), ecSlaves(ecSlavesVec), apSlave(airPressureSlave) {
+    initSlaves();
+    uint32_t bitmask = 196608;
+    ecSlaves[airPressureSlave - 1].write_sdo(0x60FE, 0x02, &bitmask, sizeof(bitmask));     
+}
 
+/**
+ * Destructor for SCARA.
+*/
 SCARA::~SCARA() {}
 
 /**
@@ -62,8 +78,8 @@ void SCARA::initSlaves() {
 */
 void SCARA::moveToPos(Slave ecSlave, int slaveNr, int position, int velocity) {
     // Ensure that slaveNr is a valid index (0 to size() - 1)
-    if (slaveNr >= 0 && slaveNr < this->ecSlaves.size()) {
-        this->ecSlaves[slaveNr].position_task(position, velocity, true, false);
+    if (slaveNr >= 1 && slaveNr <= this->ecSlaves.size()) {
+        this->ecSlaves[slaveNr - 1].position_task(position, velocity, true, false);
     } else {
         // Handle error: slaveNr is out of range
         std::cerr << "Error: Invalid slave number\n";
@@ -71,77 +87,157 @@ void SCARA::moveToPos(Slave ecSlave, int slaveNr, int position, int velocity) {
 }
 
 /**
- * Moves all slaves to a position.
+ * Moves Joint 1 and Joint 2 to a set of target positions.
  * 
- * @param velocities The velocities to move with
- * @param positions The positions to move to
- * @param startThreads2First True if the ball screw nut slaves should be moved first, false if the joints should be moved first
- * 
- * @note The number of velocities and positions must match the number of slaves
+ * @param j1 The target position for Joint 1
+ * @param j2 The target position for Joint 2
+ * @param velocityj1 The velocity to move Joint 1 with
+ * @param velocityj2 The velocity to move Joint 2 with
  * 
 */
-void SCARA::moveToPosT(const std::vector<int>& velocities, const std::vector<int>& positions) {
-    // Ensure that the number of velocities and positions match the number of slaves
-    if (velocities.size() != this->ecSlaves.size()) {
-        //print velocities.size() and this->ecSlaves.size()
-        std::cout << "velocities.size() = " << velocities.size() << std::endl;
-        std::cout << "this->ecSlaves.size() = " << this->ecSlaves.size() << std::endl;
-        std::cerr << "Error: Number of velocities does not match the number of slaves\n";
-        return;
-    }
-    moveToPos(ecSlaves[2], 2, 0, velocities[2]);
-    // Ball screw nut motors
-    int ballScrewNut = 2;
-    // Joints motors
-    int joints = 2;
+void SCARA::moveJ1J2(int j1, int j2, int velocityj1, int velocityj2) {
+    std::vector<std::thread> threads(2);
 
-    std::vector<std::thread> threads(joints);
-    for (int i = 0; i < joints; ++i) {
-        threads[i] = std::thread(&SCARA::moveToPos, this, ecSlaves[i], i, positions[i], velocities[i]); 
-    }
+    // Move slave for joint 1 to position j1
+    threads[0] = std::thread(&SCARA::moveToPos, this, ecSlaves[0], 1, j1, velocityj1);
 
-    for (int i = 0; i < joints; ++i) {
+    // Move slave for joint 2 to position j2
+    threads[1] = std::thread(&SCARA::moveToPos, this, ecSlaves[1], 2, j2, velocityj2);
+
+    // Join both threads to wait for them to finish
+    for (int i = 0; i < 2; ++i) {  // Use the size of the threads vector
         threads[i].join();
     }
-
-    std::vector<std::thread> threads2(ballScrewNut);
-    for (int i = 0; i < ballScrewNut; ++i) {
-        threads2[i] = std::thread(&SCARA::moveToPos, this, ecSlaves[i + 2], i + 2, positions[i + 2], velocities[i + 2]); 
-    }
-
-    for (int i = 0; i < ballScrewNut; ++i) {
-        threads2[i].join();
-    }
-
-    Sleep(5000);
-
-    moveToPos(ecSlaves[2], 2, 0, velocities[2]);
 }
 
 /**
- * Moves the robot to a set of target positions.
+ * Moves Joint 3 and Joint 4 to a set of target positions.
  * 
- * @param velocities The velocities to move with
+ * @param j3 The target position for Joint 3
+ * @param j4 The target position for Joint 4
+ * @param velocityj3 The velocity to move Joint 3 with
+ * @param velocityj4 The velocity to move Joint 4 with
  * 
- * @note The set of target positions is hardcoded
 */
-void SCARA::demo(const std::vector<int>& velocities){
-    std::vector<std::pair<double, double>> targetPositions = {
-        {244.16, -187.19}, {333.86, -186.59}, {424.23, -186.09},
-        {244.58, -47.11}, {334.07, -45.80}, {423.70, -45.51},
-        {244.73, 92.74}, {333.82, 93.47}, {423.77, 94.23}
-    };
+void SCARA::moveJ3J4(int j3, int j4, int velocityj3, int velocityj4) {
+    std::vector<std::thread> threads(2);
 
-    std::vector<std::vector<int>> endPositions;
+    // Move slave for joint 3 to position j3
+    threads[0] = std::thread(&SCARA::moveToPos, this, ecSlaves[2], 3, j3, velocityj3);
 
-    // Calculate and store end positions for each target position
-    for (const auto& target : targetPositions) {
-        JointAngles angles = calculateJointAngles(target.first, target.second, false);
-        endPositions.push_back({ (int)angles.j1 * 1000, (int)angles.j2 * 1000, 275 * 1000 });
+    // Move slave for joint 4 to position j4
+    threads[1] = std::thread(&SCARA::moveToPos, this, ecSlaves[3], 4, j4, velocityj4);
+
+    // Join both threads to wait for them to finish
+    for (int i = 0; i < 2; ++i) {  // Use the size of the threads vector
+        threads[i].join();
+    }
+}
+
+/**
+ * Moves the robot to the home position.
+ * 
+ * @note The home position is defined as Joint 1 being at -90 degrees and Joint 2 being at 0 degrees.
+ * this is so the camera can see the batteries/objects.
+ * 
+*/
+void SCARA::moveTo0() {
+    moveJ3J4(0, 0, j3speed, j4speed); // Spindel-axis and rotation-axis to 0 degrees so when moving nothing hits anything
+    moveJ1J2(-90000, 0, j1speed, j2speed); // -90 degrees for joint 1, 0 degrees for joint 2
+    
+}
+
+/**
+ * Picks up an object.
+ * 
+ * @param x The x coordinate of the object
+ * @param y The y coordinate of the object
+ * @param angle The angle of the object
+ * @param elbowLeft True if the elbow is on the left side of the robot, false if it is on the right
+ * 
+*/
+void SCARA::pickUp(double x, double y, double angle, bool elbowLeft) {
+    JointAngles angles = calculateJointAngles(x, y, elbowLeft);
+    int j1pos = (int)angles.j1 * 1000; 
+    int j2pos = (int)angles.j2 * 1000;
+    int anglepos = (int)angle * 1000;
+   
+    moveJ3J4(0, 0, j3speed, j4speed);
+    moveJ1J2(j1pos, j2pos, j1speed, j2speed);
+
+    moveJ3J4(pickupl, anglepos,  j3speed, j4speed);
+
+    airPressureOn();
+
+    while(!getVacuum()){
+        std::cout << "Waiting for vacuum" << std::endl;
     }
 
-    // Move to each target position
-    for (const auto& endPos : endPositions) {
-        moveToPosT(velocities, endPos);
+    moveJ3J4(0, 0, j3speed, j4speed);
+
+}
+
+/**
+ * Drops an object.
+ * 
+ * @param elbowLeft True if the elbow is on the left side of the robot, false if it is on the right
+ */
+
+
+void SCARA::drop(bool elbowLeft){
+    JointAngles dropangles = calculateJointAngles(248.7, -381.9, elbowLeft);
+    int j1droppos = (int)dropangles.j1 * 1000;
+    int j2droppos = (int)dropangles.j2 * 1000;
+
+    moveJ1J2(j1droppos, j2droppos, j1speed, j2speed);
+
+    moveJ3J4(dropl, dropangle, j3speed, j4speed);
+
+    airPressureOff();
+
+    while(getVacuum()){
+        std::cout << "Waiting for vacuum to turn off" << std::endl;
     }
+}
+/**
+ * Turns on the air pressure.
+ * 
+*/
+void SCARA::airPressureOn(){
+    uint32_t airpressureon = 65536;
+    ecSlaves[this->apSlave - 1].write_sdo(0x60FE, 0x01, &airpressureon, sizeof(airpressureon));
+}
+
+/**
+ * Turns off the air pressure.
+ * 
+*/
+void SCARA::airPressureOff(){
+    uint32_t airpressureoff = 0;
+    ecSlaves[this->apSlave - 1].write_sdo(0x60FE, 0x01, &airpressureoff, sizeof(airpressureoff));
+}
+
+/**
+ * Checks if the vacuum is created or not.
+ * 
+ * @return True if the vacuum is created, false if it is off
+ * 
+*/
+bool SCARA::getVacuum(){
+    uint32_t vacuum;
+    int vacuumsize = sizeof(vacuum);
+    ecSlaves[this->apSlave - 1].read_sdo(0x213D, 0x01, &vacuum, &vacuumsize);
+
+    std::cout << "vacuum value: " << vacuum << std::endl;
+    if(vacuum == 12603140){
+        return false;
+    }
+    else if(vacuum == 12611332){
+        return true;
+    }
+    else{
+        std::cout << "Error: Invalid vacuum value" << std::endl;
+        return false;
+    }
+
 }
