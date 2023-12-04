@@ -33,7 +33,7 @@ SCARA::~SCARA() {}
  * @return The joint angles for the SCARA robot
  * 
  */
-JointAngles SCARA::calculateJointAngles(double x, double y, bool elbowLeft) {
+JointAngles SCARA::calculateJointAngles(double x, double y, double angle, bool elbowLeft) {
     // Calculate c2
     double c2 = (pow(x, 2) + pow(y, 2) - pow(a1, 2) - pow(a2, 2)) / (2 * a1 * a2);
 
@@ -52,6 +52,8 @@ JointAngles SCARA::calculateJointAngles(double x, double y, bool elbowLeft) {
     JointAngles result;
     result.j1 = j1 * 180.0 / PI; // Convert J1 to degrees
     result.j2 = j2 * 180.0 / PI; // Convert J2 to degrees
+
+    result.gripper_angle = (0.27 * result.j1) + (0.10 * result.j2) + (-0.11 * angle);
 
     return result;
 }
@@ -157,7 +159,7 @@ void SCARA::moveTo0() {
  * 
 */
 void SCARA::pickUp(double x, double y, double angle, bool elbowLeft) {
-    JointAngles angles = calculateJointAngles(x, y, elbowLeft);
+    JointAngles angles = calculateJointAngles(x, y, angle, elbowLeft);
     int j1pos = (int)angles.j1 * 1000; 
     int j2pos = (int)angles.j2 * 1000;
     int anglepos = (int)angle * 1000;
@@ -182,16 +184,15 @@ void SCARA::pickUp(double x, double y, double angle, bool elbowLeft) {
  * 
  * @param elbowLeft True if the elbow is on the left side of the robot, false if it is on the right
  */
-
-
 void SCARA::drop(bool elbowLeft){
-    JointAngles dropangles = calculateJointAngles(248.7, -381.9, elbowLeft);
+    JointAngles dropangles = calculateJointAngles(248.7, -381.9, 70.0, elbowLeft);
     int j1droppos = (int)dropangles.j1 * 1000;
     int j2droppos = (int)dropangles.j2 * 1000;
+    int droppangle = (int)dropangles.gripper_angle * 1000;
 
     moveJ1J2(j1droppos, j2droppos, j1speed, j2speed);
 
-    moveJ3J4(dropl, dropangle, j3speed, j4speed);
+    moveJ3J4(dropl, droppangle, j3speed, j4speed);
 
     airPressureOff();
 

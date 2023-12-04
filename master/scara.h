@@ -11,6 +11,7 @@
 struct JointAngles {
     double j1;
     double j2;
+    double gripper_angle;
 };
 
 class SCARA {
@@ -25,7 +26,7 @@ class SCARA {
     public:
         SCARA(double length_a1, double length_a2, std::vector<Slave>& ecSlavesVec, int airPressureSlave);
         ~SCARA();
-        JointAngles calculateJointAngles(double x, double y, bool elbowLeft);
+        JointAngles calculateJointAngles(double x, double y, double angle, bool elbowLeft);
         void pickUp(double x, double y, double angle, bool elbowLeft);
         void airPressureOn();
         void airPressureOff();
@@ -37,7 +38,7 @@ class SCARA {
 
     typedef enum {
         pickupl = 297 * 1000, // Length of the spindel-axis to reach battery 297 mm * 1000
-        dropl = 180 * 1000, // Length of the spindel-axis to drop battery 168 mm * 1000
+        dropl = 170 * 1000, // Length of the spindel-axis to drop battery 168 mm * 1000
         dropangle = 45 * 1000, // Angle of the spindel-axis to drop battery 45 degrees * 1000
         j1speed = 10 * 1000, // Speed of joint 1 25 degrees per second * 1000
         j2speed = 25 * 1000, // Speed of joint 2 50 degrees per second * 1000
