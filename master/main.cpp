@@ -3,7 +3,6 @@
 #include "scara.h"
 #include "camera.h"
 
-JointAngles calculateJointAngles2(double x, double y, bool elbowLeft);
 int main(int argc, char* argv[]){
     int numSlaves = 4;
     

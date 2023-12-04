@@ -183,6 +183,8 @@ void SCARA::pickUp(double x, double y, double angle, bool elbowLeft) {
  * Drops an object.
  * 
  * @param elbowLeft True if the elbow is on the left side of the robot, false if it is on the right
+ * 
+ * @note the drop position is defined at x = 248.7, y = -381.9, angle = 70.0
  */
 void SCARA::drop(bool elbowLeft){
     JointAngles dropangles = calculateJointAngles(248.7, -381.9, 70.0, elbowLeft);

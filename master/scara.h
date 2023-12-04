@@ -39,7 +39,6 @@ class SCARA {
     typedef enum {
         pickupl = 297 * 1000, // Length of the spindel-axis to reach battery 297 mm * 1000
         dropl = 170 * 1000, // Length of the spindel-axis to drop battery 168 mm * 1000
-        dropangle = 45 * 1000, // Angle of the spindel-axis to drop battery 45 degrees * 1000
         j1speed = 10 * 1000, // Speed of joint 1 25 degrees per second * 1000
         j2speed = 25 * 1000, // Speed of joint 2 50 degrees per second * 1000
         j3speed = 100, // Speed of joint 3 0.1 meters per second * 1000
