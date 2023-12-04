@@ -9,16 +9,16 @@
 #pragma comment(lib, "ws2_32.lib")
 
 class Camera {
-public:
-    Camera(const char* targetIp, int targetPort);
-    ~Camera();
+    public:
+        Camera(const char* targetIp, int targetPort);
+        ~Camera();
 
-    void capture();
+        void capture();
 
-private:
-    const char* target_ip;
-    int target_port;
-    SOCKET client_socket;
+    private:
+        const char* target_ip;
+        int target_port;
+        SOCKET client_socket;
 };
 
 #endif // CAMERA_H
