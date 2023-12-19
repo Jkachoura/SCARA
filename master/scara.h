@@ -22,7 +22,7 @@ class SCARA {
         int apSlave;
         void moveToPos(Slave ecSlave, int slaveNr, int position, int velocity);
         void initSlaves();
-
+        
     public:
         SCARA(double length_a1, double length_a2, std::vector<Slave>& ecSlavesVec, int airPressureSlave);
         ~SCARA();
@@ -37,11 +37,10 @@ class SCARA {
         void drop(bool elbowLeft);
 
     typedef enum {
-        pickupl = 297 * 1000, // Length of the spindel-axis to reach battery 297 mm * 1000
         dropl = 170 * 1000, // Length of the spindel-axis to drop battery 168 mm * 1000
-        j1speed = 10 * 1000, // Speed of joint 1 25 degrees per second * 1000
-        j2speed = 25 * 1000, // Speed of joint 2 50 degrees per second * 1000
-        j3speed = 100, // Speed of joint 3 0.1 meters per second * 1000
+        j1speed = 60 * 1000, // Speed of joint 1 25 degrees per second * 1000
+        j2speed = 80 * 1000, // Speed of joint 2 50 degrees per second * 1000
+        j3speed = 300, // Speed of joint 3 0.1 meters per second * 1000
         j4speed = 1440 * 1000, // Speed of joint 4 36 degrees per second * 1000
         // Everything is * 1000 becasue of the fieldbus settings in the slaves
     }macros_t;

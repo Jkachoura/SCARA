@@ -54,14 +54,18 @@ Camera::~Camera() {
  * @return A vector of doubles
 */
 std::vector<double> Camera::splitAndConvertToDoubles(const std::string& message) {
-    std::vector<double> values;
+    std::vector<double> values(3, 0.0);  // Initialize a vector of size 3 with zeros
     std::istringstream iss(message);
     std::string token;
 
-    while (std::getline(iss, token, ';')) {
+    for (int i = 0; i < 3; ++i) {
+        if (!std::getline(iss, token, ';')) {
+            std::cerr << "Error: Not enough values in the message" << std::endl;
+            break;
+        }
         try {
             double value = std::stod(token) / 1000.0; // Convert to double and divide by 1000
-            values.push_back(value);
+            values[i] = value;
         } catch (const std::invalid_argument& e) {
             std::cerr << "Invalid argument: " << e.what() << std::endl;
         } catch (const std::out_of_range& e) {
@@ -72,6 +76,7 @@ std::vector<double> Camera::splitAndConvertToDoubles(const std::string& message)
     return values;
 }
 
+
 /**
  * Sends a TRG message to the camera.
 */
@@ -80,7 +85,9 @@ void Camera::capture() {
     const char* trg_message = "TRG";
 
     // Send the message
-    send(client_socket, trg_message, strlen(trg_message), 0);
+    send(client_socket, trg_message, strlen(trg_message) + 1, 0);
+
+    std::cout << "Capture done" << std::endl;
 }
 
 /**
@@ -89,12 +96,16 @@ void Camera::capture() {
  * @return A vector of doubles
 */
 std::vector<double> Camera::receiveMessage() {
+    //print 
+    std::cout << "Receiving message" << std::endl;
     char buffer[1024];
     int bytesReceived = recv(client_socket, buffer, sizeof(buffer), 0);
+    //print
+    std::cout << "Received " << bytesReceived << " bytes" << std::endl;
     if (bytesReceived <= 0) {
         std::cerr << "Error receiving message or connection closed" << std::endl;
+        exit(EXIT_FAILURE);
     }
-    buffer[bytesReceived] = '\0';
 
     return splitAndConvertToDoubles(std::string(buffer, bytesReceived));
 }

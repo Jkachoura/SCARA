@@ -4,8 +4,7 @@
 #include "camera.h"
 
 int main(int argc, char* argv[]){
-    int numSlaves = 4;
-    
+    int numSlaves = 4;    
     char ifaceName[] = "\\Device\\NPF_{DEA85026-34BA-4C8B-9840-A3CE7793A348}";
     Master ecMaster(ifaceName, 8000);
     Camera client("192.168.0.101", 2006); // send message to camera
@@ -19,21 +18,24 @@ int main(int argc, char* argv[]){
 
         SCARA scaraRobot(250, 280, ecSlaves, 3);
         
-        // camera.recieve_message();
-      
-        client.capture();
-        std::vector<double> coordinates = client2.receiveMessage();
-        if (coordinates.empty()) {
-            std::cerr << "Error receiving message or connection closed" << std::endl;
+        int batteries = 10;
+        Sleep(3000);
+        while(batteries > 0){
+            client.capture();
+            std::vector<double> coordinates = client2.receiveMessage();
+
+            double x = coordinates[0];
+            double y = coordinates[1];
+            double angle = coordinates[2];
+
+            scaraRobot.pickUp(x, y, angle, false);
+            scaraRobot.drop(false);
+            scaraRobot.moveTo0();
+            batteries--;
         }
-
-        // Access the individual coordinates
-        double x = coordinates[0];
-        double y = coordinates[1];
-        double angle = coordinates[2];
-
-        // Use the coordinates as needed
-        std::cout << "Received coordinates: X=" << x << ", Y=" << y << ", Angle=" << angle << std::endl;
+        scaraRobot.airPressureOff();
+        scaraRobot.moveTo0();
+            
     
         return EXIT_SUCCESS;
     }
@@ -41,3 +43,4 @@ int main(int argc, char* argv[]){
         return EXIT_FAILURE;
     }
 }
+

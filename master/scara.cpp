@@ -53,7 +53,11 @@ JointAngles SCARA::calculateJointAngles(double x, double y, double angle, bool e
     result.j1 = j1 * 180.0 / PI; // Convert J1 to degrees
     result.j2 = j2 * 180.0 / PI; // Convert J2 to degrees
 
-    result.gripper_angle = (0.27 * result.j1) + (0.10 * result.j2) + (-0.11 * angle);
+    result.gripper_angle = result.j1 + result.j2 - angle;
+    //print gripper angle and j1 and j2
+    std::cout << "gripper angle: " << result.gripper_angle << std::endl;
+    std::cout << "j1: " << result.j1 << std::endl;
+    std::cout << "j2: " << result.j2 << std::endl;
 
     return result;
 }
@@ -162,21 +166,36 @@ void SCARA::pickUp(double x, double y, double angle, bool elbowLeft) {
     JointAngles angles = calculateJointAngles(x, y, angle, elbowLeft);
     int j1pos = (int)angles.j1 * 1000; 
     int j2pos = (int)angles.j2 * 1000;
-    int anglepos = (int)angle * 1000;
-   
+    int anglepos = (int)angles.gripper_angle * 1000;
+
+    double offset= (4.0/(340.0)) * (490 - x);
+    double picklt = 293 + offset;
+    double off = abs(angle) * (16.0/360.0);
+    if(angle > 0) {
+        picklt = picklt - off; 
+    } else {
+        picklt = picklt + off;
+    }
+
+    
+
+    std::cout << "picklt: " << picklt << std::endl;
+    int apickupl = (int)picklt * 1000;
     moveJ3J4(0, 0, j3speed, j4speed);
     moveJ1J2(j1pos, j2pos, j1speed, j2speed);
 
-    moveJ3J4(pickupl, anglepos,  j3speed, j4speed);
+    moveJ3J4(apickupl, anglepos,  j3speed, j4speed);
 
     airPressureOn();
+
+    Sleep(1000);
 
     while(!getVacuum()){
         std::cout << "Waiting for vacuum" << std::endl;
     }
 
-    moveJ3J4(0, 0, j3speed, j4speed);
 
+    moveJ3J4(0, anglepos, j3speed, j4speed);
 }
 
 /**
@@ -187,7 +206,7 @@ void SCARA::pickUp(double x, double y, double angle, bool elbowLeft) {
  * @note the drop position is defined at x = 248.7, y = -381.9, angle = 70.0
  */
 void SCARA::drop(bool elbowLeft){
-    JointAngles dropangles = calculateJointAngles(248.7, -381.9, 70.0, elbowLeft);
+    JointAngles dropangles = calculateJointAngles(248.7, -381.9, -70.0, elbowLeft);
     int j1droppos = (int)dropangles.j1 * 1000;
     int j2droppos = (int)dropangles.j2 * 1000;
     int droppangle = (int)dropangles.gripper_angle * 1000;
