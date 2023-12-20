@@ -170,30 +170,40 @@ void SCARA::pickUp(double x, double y, double angle, bool elbowLeft) {
 
     double offset= (4.0/(340.0)) * (490 - x);
     double picklt = 293 + offset;
+
     double off = abs(angle) * (16.0/360.0);
+
     if(angle > 0) {
         picklt = picklt - off; 
     } else {
         picklt = picklt + off;
     }
 
-    
-
-    std::cout << "picklt: " << picklt << std::endl;
     int apickupl = (int)picklt * 1000;
-    moveJ3J4(0, 0, j3speed, j4speed);
+
     moveJ1J2(j1pos, j2pos, j1speed, j2speed);
 
     moveJ3J4(apickupl, anglepos,  j3speed, j4speed);
 
     airPressureOn();
 
-    Sleep(1000);
+    Sleep(500);
 
-    while(!getVacuum()){
+    auto startTime = std::chrono::high_resolution_clock::now();
+    while (!getVacuum()) {
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        auto elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(currentTime - startTime).count();
+
         std::cout << "Waiting for vacuum" << std::endl;
-    }
 
+        // Break out of the loop if more than 3 seconds have passed
+        if (elapsedTime > 3) {
+            std::cout << "Timeout: Unable to detect vacuum within 3 seconds." << std::endl;
+            break;
+        }
+        // Sleep for a short duration to avoid high CPU usage in the loop
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 
     moveJ3J4(0, anglepos, j3speed, j4speed);
 }
@@ -220,6 +230,8 @@ void SCARA::drop(bool elbowLeft){
     while(getVacuum()){
         std::cout << "Waiting for vacuum to turn off" << std::endl;
     }
+
+    moveJ3J4(0, droppangle, j3speed, j4speed);
 }
 /**
  * Turns on the air pressure.
@@ -250,7 +262,6 @@ bool SCARA::getVacuum(){
     int vacuumsize = sizeof(vacuum);
     ecSlaves[this->apSlave - 1].read_sdo(0x213D, 0x01, &vacuum, &vacuumsize);
 
-    std::cout << "vacuum value: " << vacuum << std::endl;
     if(vacuum == 12603140){
         return false;
     }

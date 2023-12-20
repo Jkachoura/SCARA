@@ -7,6 +7,7 @@
 #include "slave.h"
 #include "master.h"
 #include <thread>
+#include <chrono>
 
 struct JointAngles {
     double j1;
@@ -39,7 +40,7 @@ class SCARA {
     typedef enum {
         dropl = 170 * 1000, // Length of the spindel-axis to drop battery 168 mm * 1000
         j1speed = 60 * 1000, // Speed of joint 1 25 degrees per second * 1000
-        j2speed = 80 * 1000, // Speed of joint 2 50 degrees per second * 1000
+        j2speed = 60 * 1000, // Speed of joint 2 50 degrees per second * 1000
         j3speed = 300, // Speed of joint 3 0.1 meters per second * 1000
         j4speed = 1440 * 1000, // Speed of joint 4 36 degrees per second * 1000
         // Everything is * 1000 becasue of the fieldbus settings in the slaves
