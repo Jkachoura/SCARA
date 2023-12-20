@@ -96,12 +96,34 @@ void Camera::capture() {
  * @return A vector of doubles
 */
 std::vector<double> Camera::receiveMessage() {
-    //print 
-    std::cout << "Receiving message" << std::endl;
+    // Setup the fd_set for select
+    fd_set readSet;
+    FD_ZERO(&readSet);
+    FD_SET(client_socket, &readSet);
+
+    // Set a timeout (for example, 1 second)
+    struct timeval timeout;
+    timeout.tv_sec = 1;  // seconds
+    timeout.tv_usec = 0; // microseconds
+
+    // Use select to check if there is data to be read
+    int ready = select(0, &readSet, nullptr, nullptr, &timeout);
+
+    if (ready == SOCKET_ERROR) {
+        std::cerr << "Error in select: " << WSAGetLastError() << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    if (ready == 0) {
+        // No data available within the timeout period
+        std::cout << "No data received within the timeout period. Exiting..." << std::endl;
+        exit(EXIT_SUCCESS);
+    }
+
+    // Now, it's safe to call recv because there is data to be read
     char buffer[1024];
     int bytesReceived = recv(client_socket, buffer, sizeof(buffer), 0);
-    //print
-    std::cout << "Received " << bytesReceived << " bytes" << std::endl;
+
     if (bytesReceived <= 0) {
         std::cerr << "Error receiving message or connection closed" << std::endl;
         exit(EXIT_FAILURE);

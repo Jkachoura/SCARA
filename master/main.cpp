@@ -18,9 +18,7 @@ int main(int argc, char* argv[]){
 
         SCARA scaraRobot(250, 280, ecSlaves, 3);
         
-        int batteries = 10;
-        Sleep(3000);
-        while(batteries > 0){
+        while(true){
             client.capture();
             std::vector<double> coordinates = client2.receiveMessage();
 
@@ -30,11 +28,7 @@ int main(int argc, char* argv[]){
 
             scaraRobot.pickUp(x, y, angle, false);
             scaraRobot.drop(false);
-            scaraRobot.moveTo0();
-            batteries--;
         }
-        scaraRobot.airPressureOff();
-        scaraRobot.moveTo0();
             
     
         return EXIT_SUCCESS;

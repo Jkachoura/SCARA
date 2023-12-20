@@ -197,7 +197,7 @@ void SCARA::pickUp(double x, double y, double angle, bool elbowLeft) {
         std::cout << "Waiting for vacuum" << std::endl;
 
         // Break out of the loop if more than 3 seconds have passed
-        if (elapsedTime > 3) {
+        if (elapsedTime > 1.5) {
             std::cout << "Timeout: Unable to detect vacuum within 3 seconds." << std::endl;
             break;
         }
