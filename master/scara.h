@@ -20,7 +20,7 @@ class SCARA {
         double a1;  // Length of the first arm
         double a2;  // Length of the second arm
         std::vector<Slave>& ecSlaves;
-        int apSlave;
+        int apSlave; // Index of the slave that controls the air pressure
         void moveToPos(Slave ecSlave, int slaveNr, int position, int velocity);
         void initSlaves();
         
@@ -41,9 +41,9 @@ class SCARA {
         dropl = 170 * 1000, // Length of the spindel-axis to drop battery 168 mm * 1000
         j1speed = 200 * 1000, // Speed of joint 1 25 degrees per second * 1000
         j2speed = 250 * 1000, // Speed of joint 2 50 degrees per second * 1000
-        j3speed = 400, // Speed of joint 3 0.1 meters per second * 1000
+        j3speed = 400, // Speed of joint 3 0.4 meters per second * 1000
         j4speed = 1440 * 1000, // Speed of joint 4 36 degrees per second * 1000
-        // Everything is * 1000 becasue of the fieldbus settings in the slaves
+        // Everything is * 1000 because of the fieldbus settings in the slaves
     }macros_t;
 };
 

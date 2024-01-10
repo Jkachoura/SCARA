@@ -12,14 +12,16 @@ Camera::Camera(const char* targetIp, int targetPort) : target_ip(targetIp), targ
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
         std::cerr << "Failed to initialize Winsock" << std::endl;
-        // Handle error, maybe throw an exception or exit the program
+        // Exit the program
+        exit(EXIT_FAILURE);
     }
 
     // Create a socket object
     client_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (client_socket == INVALID_SOCKET) {
         std::cerr << "Error creating socket: " << WSAGetLastError() << std::endl;
-        // Handle error, maybe throw an exception or exit the program
+        // Exit the program
+        exit(EXIT_FAILURE);
     }
 
     // Set up the server address structure
@@ -31,7 +33,8 @@ Camera::Camera(const char* targetIp, int targetPort) : target_ip(targetIp), targ
     // Connect to the server
     if (connect(client_socket, (struct sockaddr*)&server_address, sizeof(server_address)) == SOCKET_ERROR) {
         std::cerr << "Error connecting to the server: " << WSAGetLastError() << std::endl;
-        // Handle error, maybe throw an exception or exit the program
+        // Exit the program
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -101,7 +104,7 @@ std::vector<double> Camera::receiveMessage() {
     FD_ZERO(&readSet);
     FD_SET(client_socket, &readSet);
 
-    // Set a timeout (for example, 1 second)
+    // Set a timeout
     struct timeval timeout;
     timeout.tv_sec = 1;  // seconds
     timeout.tv_usec = 0; // microseconds

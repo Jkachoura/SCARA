@@ -14,6 +14,8 @@ const double PI = 3.14159265358979323846;
 */
 SCARA::SCARA(double length_a1, double length_a2, std::vector<Slave>& ecSlavesVec, int airPressureSlave) : a1(length_a1), a2(length_a2), ecSlaves(ecSlavesVec), apSlave(airPressureSlave) {
     initSlaves();
+
+    // Set the bitmask for the air pressure slave
     uint32_t bitmask = 196608;
     ecSlaves[airPressureSlave - 1].write_sdo(0x60FE, 0x02, &bitmask, sizeof(bitmask));     
 }
@@ -164,15 +166,20 @@ void SCARA::moveTo0() {
 */
 void SCARA::pickUp(double x, double y, double angle, bool elbowLeft) {
     JointAngles angles = calculateJointAngles(x, y, angle, elbowLeft);
+
     int j1pos = (int)angles.j1 * 1000; 
     int j2pos = (int)angles.j2 * 1000;
     int anglepos = (int)angles.gripper_angle * 1000;
 
+    // Calculate the offset for the pick up position based on the x coordinate
+    // In the searchfield the depth decreases by 4mm for every 340mm
     double offset= (4.0/(340.0)) * (490 - x);
     double picklt = 293 + offset;
 
+    // Because of the spindle-axis the spindle changes 16mm for every 360 degrees rotation
     double off = abs(angle) * (16.0/360.0);
 
+    // If the angle is positive, the spindle-axis moves down, if it is negative, the spindle-axis moves up
     if(angle > 0) {
         picklt = picklt - off; 
     } else {
@@ -181,14 +188,19 @@ void SCARA::pickUp(double x, double y, double angle, bool elbowLeft) {
 
     int apickupl = (int)picklt * 1000;
 
+    // Move to the pick up position
     moveJ1J2(j1pos, j2pos, j1speed, j2speed);
 
+    // Move the spindle-axis to the pick up position
     moveJ3J4(apickupl, anglepos,  j3speed, j4speed);
-
+    
     airPressureOn();
 
     Sleep(500);
 
+    // Wait for the vacuum to turn on
+    // This is done by checking the vacuum value every 100ms for 3 seconds
+    // If there is no vacuum after 3 seconds, the robot will continue
     auto startTime = std::chrono::high_resolution_clock::now();
     while (!getVacuum()) {
         auto currentTime = std::chrono::high_resolution_clock::now();
@@ -205,6 +217,7 @@ void SCARA::pickUp(double x, double y, double angle, bool elbowLeft) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
+    // Move the spindle-axis back up
     moveJ3J4(0, anglepos, j3speed, j4speed);
 }
 
@@ -217,6 +230,7 @@ void SCARA::pickUp(double x, double y, double angle, bool elbowLeft) {
  */
 void SCARA::drop(bool elbowLeft){
     JointAngles dropangles = calculateJointAngles(248.7, -381.9, -70.0, elbowLeft);
+
     int j1droppos = (int)dropangles.j1 * 1000;
     int j2droppos = (int)dropangles.j2 * 1000;
     int droppangle = (int)dropangles.gripper_angle * 1000;
@@ -262,6 +276,7 @@ bool SCARA::getVacuum(){
     int vacuumsize = sizeof(vacuum);
     ecSlaves[this->apSlave - 1].read_sdo(0x213D, 0x01, &vacuum, &vacuumsize);
 
+    // This number is based on the binary value of the I/O pins on the slave
     if(vacuum == 12603140){
         return false;
     }
